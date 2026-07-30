@@ -91,7 +91,8 @@ def analyze_market():
 
             # 1. تنبيهات دخول الآن (على فريم 15m)
             if tf_val == '15m':
-                if buy_pct >= 75 and close > prev_p_check := df['close'].iloc[-2]:
+                prev_p_check = df['close'].iloc[-2]
+if buy_pct >= 75 and close > prev_p_check:
                     msg = (
                         f"🟢 <b>دخول الآن شراء</b>\n\n"
                         f"💰 العملة: #{ticker_name}\n"
