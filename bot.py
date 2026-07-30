@@ -17,8 +17,7 @@ def get_binance_futures_symbols():
         symbols = [s['symbol'] for s in data['symbols'] if s['status'] == 'TRADING' and s['contractType'] == 'PERPETUAL']
         return symbols
     except Exception as e:
-        print(f"خطأ في جلب العملات من بايننس: {e}")
-        # قائمة احتياطية في حال تعذر الاتصال المؤقت
+        print(f"Error fetching symbols from Binance: {e}")
         return ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"]
 
 # دالة إرسال الإشعار إلى تيليجرام
@@ -32,7 +31,7 @@ def send_telegram_message(text):
         response = requests.post(TELEGRAM_URL, json=payload, timeout=5)
         return response.json()
     except Exception as e:
-        print(f"خطأ في إرسال الرسالة لتليجرام: {e}")
+        print(f"Error sending message to Telegram: {e}")
 
 # جلب الوقت بتوقيت السعودية
 def get_saudi_time():
@@ -45,7 +44,7 @@ def check_market_data():
     symbols = get_binance_futures_symbols()
     timeframes = {"15m": "15m", "1h": "1h", "4h": "4h"}
     
-    print(جاري فحص عدد {len(symbols)} عملة فيوتشر...")
+    print(f"Checking {len(symbols)} futures symbols...")
 
     for symbol in symbols:
         formatted_symbol = f"#{symbol}.P"
@@ -64,37 +63,27 @@ def check_market_data():
                 last_candle = candles[-1]
                 close_price = float(last_candle[4])
                 
-                # محاكاة منطق الإشارات الأربع بناءً على المؤشر الخاص بك وتجنب التأخير
-                # 1. تنبيهات دخول الآن (شراء / بيع) على فريم 15 دقيقة
+                # يمكنك إضافة أو ربط شروط المؤشر الخاص بك هنا
                 if tf_val == "15m":
-                    # (مثال حي للمنطق البرمجي المتزامن مع شروط المؤشر)
                     pass
-
-                # 2. تنبيهات الاستعداد (شراء / بيع) على فريم الساعة
                 if tf_val == "1h":
                     pass
-
-                # 3. تنبيهات Delta Buy / Sell على فريم 4 ساعات
                 if tf_val == "4h":
                     pass
 
-                # 4. تنبيهات Smart Money أول ظهور على فريم 15 دقيقة
-                if tf_val == "15m":
-                    pass
-
-                time.sleep(0.05) # حظر مؤقت لتفادي حظر الـ IP من بايننس
+                time.sleep(0.05) 
             except Exception as e:
                 continue
 
 # التشغيل المستمر للبوت
 def main():
-    print("تم تشغيل بوت تليجرام بنجاح ويرتبط الآن بـ Binance Futures...")
+    print("Telegram bot started successfully and connected to Binance Futures...")
     while True:
         try:
             check_market_data()
-            time.sleep(10) # الفحص كل 10 ثوانٍ لضمان الفورية بدون تاخير
+            time.sleep(10) # الفحص السريع لضمان الفورية بدون تأخير
         except Exception as e:
-            print(f"حدث خطأ عام: {e}")
+            print(f"General error: {e}")
             time.sleep(15)
 
 if __name__ == "__main__":
