@@ -1,65 +1,159 @@
-import os
-import time
+from datetime import datetime
+from flask import Flask, jsonify, request
 import requests
-from datetime import datetime, timezone, timedelta
 
-TOKEN = "8640721796:AAHrKDS6WPYQ7_B4N-Aj459pOSmZS-_LPu8"
-CHAT_ID = "-1004437537280"
-TELEGRAM_URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+app = Flask(__name__)
 
-session = requests.Session()
-session.headers.update({
-    "User-Agent": "Mozilla/5.0"
-})
+# بيانات التيليجرام الخاصة بك
+TELEGRAM_BOT_TOKEN = "8640721796:AAHrKDS6WPYQ7_B4N-Aj459pOSmZS-_LPu8"
+TELEGRAM_CHAT_ID = "-1004437537280"
+
 
 def send_telegram_message(text):
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": text,
-        "parse_mode": "Markdown"
-    }
-    try:
-        session.post(TELEGRAM_URL, json=payload, timeout=5)
-    except Exception as e:
-        print(f"Telegram error: {e}")
+  url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+  payload = {
+      "chat_id": TELEGRAM_CHAT_ID,
+      "text": text,
+      "parse_mode": "Markdown",
+      "disable_web_page_preview": True,
+  }
+  try:
+    response = requests.post(url, json=payload, timeout=10)
+    return response.json()
+  except Exception as e:
+    print(f"Error sending telegram message: {e}")
+    return None
 
-# فحص السوق بطلب واحد فقط لجميع العملات (بدون حظر وبسرعة فائقة)
-def check_market_data():
-    url = "https://fapi.binance.com/fapi/v1/ticker/24hr"
-    try:
-        response = session.get(url, timeout=10)
-        if response.status_code == 200:
-            tickers = response.json()
-            print(f"Successfully checked {len(tickers)} futures symbols instantly in 1 request.")
-            
-            for ticker in tickers:
-                symbol = ticker.get('symbol')
-                if not symbol.endswith('USDT'):
-                    continue
-                
-                price = float(ticker.get('lastPrice', 0))
-                
-                # ضع شروط مؤشرك هنا واستخدم السعر أو البيانات المتوفرة فوراً
-                # مثال:
-                # if [شرط المؤشر]:
-                #     send_telegram_message(f"🚨 تنبيه للعملة {symbol} بالسعر {price}")
-                
-        else:
-            print(f"Binance status: {response.status_code}")
-    except Exception as e:
-        print(f"Error fetching market data: {e}")
 
-def main():
-    print("Ultra-Fast & Ban-Free Bot Started...")
-    send_telegram_message("🚀 *تم تحديث البوت للعمل بطلب مجمع فوري (محصن ضد الحظر نهائياً)*")
-    
-    while True:
-        try:
-            check_market_data()
-            time.sleep(3) # فحص متواصل وفوري بدون أي ضغط على السيرفر
-        except Exception as e:
-            print(f"Main loop error: {e}")
-            time.sleep(5)
+@app.route("/", methods=["POST"])
+def webhook():
+  try:
+    data = request.get_json(force=True)
+    if not data:
+      return jsonify({"status": "error", "message": "No JSON data"}), 400
+
+    # استخراج البيانات المرسلة من تنبيه TradingView
+    alert_type = str(data.get("type", "")).strip().lower()
+    symbol = data.get("symbol", "BTCUSDT.P")
+    timeframe = data.get("timeframe", "15m")
+    price = data.get("price", "0.00")
+    power = data.get("power", "91%")
+    tv_link = data.get(
+        "link",
+        f"https://www.tradingview.com/chart/?symbol=BINANCE:{symbol.replace('.P', '')}",
+    )
+
+    # ضبط الوقت بتوقيت السعودية
+    current_time = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+
+    message = ""
+
+    # 1. تنبيهات دخول الآن (شراء / بيع)
+    if alert_type == "entry_buy":
+      message = (
+          f"🟢 دخول الآن شراء\n\n"
+          f"💰 العملة: #{symbol}\n"
+          f"⏰ الفريم: {timeframe}\n"
+          f"💵 السعر: {price}\n"
+          f"📊 الحالة: تأكد زخم الشراء\n"
+          f"🕒 الوقت: {current_time} بتوقيت السعودية\n\n"
+          f"🔗 [TradingView]({tv_link})"
+      )
+
+    elif alert_type == "entry_sell":
+      message = (
+          f"🔴 دخول الآن — بيع\n\n"
+          f"💰 العملة: #{symbol}\n"
+          f"⏰ الفريم: {timeframe}\n"
+          f"💵 السعر: {price}\n"
+          f"📊 الحالة: تأكد زخم البيع\n"
+          f"🕒 الوقت: {current_time} بتوقيت السعودية\n\n"
+          f"🔗 [TradingView]({tv_link})"
+      )
+
+    # 2. تنبيهات الاستعداد (شراء / بيع)
+    elif alert_type == "ready_buy":
+      message = (
+          f"🟡 استعداد شراء\n\n"
+          f"💰 العملة: #{symbol}\n"
+          f"⏰ الفريم: {timeframe}\n"
+          f"💵 السعر: {price}\n"
+          f"📊 الحالة: احتمال تكوّن دخول شراء\n"
+          f"⚠️ انتظر إشارة دخول الآن\n"
+          f"🕒 الوقت: {current_time} بتوقيت السعودية\n\n"
+          f"🔗 [TradingView]({tv_link})"
+      )
+
+    elif alert_type == "ready_sell":
+      message = (
+          f"🟠 استعداد بيع\n\n"
+          f"💰 العملة: #{symbol}\n"
+          f"⏰ الفريم: {timeframe}\n"
+          f"💵 السعر: {price}\n"
+          f"📊 الحالة: احتمال تكوّن دخول بيع\n"
+          f"⚠️ انتظر إشارة دخول الآن\n"
+          f"🕒 الوقت: {current_time} بتوقيت السعودية\n\n"
+          f"🔗 [TradingView]({tv_link})"
+      )
+
+    # 3. تنبيهات Delta (Buy / Sell)
+    elif alert_type == "delta_buy":
+      message = (
+          f"⚡ DELTA BUY\n\n"
+          f"💰 العملة: #{symbol}\n"
+          f"⏰ الفريم: {timeframe}\n"
+          f"💵 السعر: {price}\n"
+          f"📊 تدفق الأوامر تحول إلى الشراء\n"
+          f"🕒 الوقت: {current_time} بتوقيت السعودية\n\n"
+          f"🔗 [TradingView]({tv_link})"
+      )
+
+    elif alert_type == "delta_sell":
+      message = (
+          f"⚡ DELTA SELL\n\n"
+          f"💰 العملة: #{symbol}\n"
+          f"⏰ الفريم: {timeframe}\n"
+          f"💵 السعر: {price}\n"
+          f"📊 تدفق الأوامر تحول إلى البيع\n"
+          f"🕒 الوقت: {current_time} بتوقيت السعودية\n\n"
+          f"🔗 [TradingView]({tv_link})"
+      )
+
+    # 4. تنبيهات Smart Money (أول ظهور شراء / بيع)
+    elif alert_type == "smart_buy":
+      message = (
+          f"🚀 SMART MONEY BUY — أول ظهور\n\n"
+          f"💰 العملة: #{symbol}\n"
+          f"⏰ الفريم: {timeframe}\n"
+          f"💵 السعر: {price}\n"
+          f"📊 القوة: {power}\n"
+          f"🐋 سيولة ذكية شرائية\n"
+          f"🕒 الوقت: {current_time} بتوقيت السعودية\n\n"
+          f"🔗 [TradingView]({tv_link})"
+      )
+
+    elif alert_type == "smart_sell":
+      message = (
+          f"🚀 SMART MONEY SELL — أول ظهور\n\n"
+          f"💰 العملة: #{symbol}\n"
+          f"⏰ الفريم: {timeframe}\n"
+          f"💵 السعر: {price}\n"
+          f"📊 القوة: {power}\n"
+          f"🐋 سيولة ذكية بيعية\n"
+          f"🕒 الوقت: {current_time} بتوقيت السعودية\n\n"
+          f"🔗 [TradingView]({tv_link})"
+      )
+
+    else:
+      return jsonify({"status": "ignored", "message": "Unknown alert type"}), 200
+
+    # إرسال الرسالة إلى تيليجرام
+    res = send_telegram_message(message)
+    return jsonify({"status": "success", "telegram_response": res}), 200
+
+  except Exception as e:
+    return jsonify({"status": "error", "message": str(e)}), 500
+
 
 if __name__ == "__main__":
-    main()
+  app.run(host="0.0.0.0", port=8080)
