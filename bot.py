@@ -8,7 +8,6 @@ TOKEN = "8640721796:AAHrKDS6WPYQ7_B4N-Aj459pOSmZS-_LPu8"
 CHAT_ID = "-1004437537280"
 TELEGRAM_URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
-# إنشاء جلسة اتصال موحدة لإعادة استخدام الاتصالات وتجنب استنزاف المنافذ
 session = requests.Session()
 
 def get_binance_futures_symbols():
@@ -17,6 +16,7 @@ def get_binance_futures_symbols():
         response = session.get(url, timeout=10)
         data = response.json()
         symbols = [s['symbol'] for s in data['symbols'] if s['status'] == 'TRADING' and s['contractType'] == 'PERPETUAL']
+        print(f"Successfully fetched {len(symbols)} symbols from Binance.")
         return symbols
     except Exception as e:
         print(f"Error fetching symbols: {e}")
@@ -55,15 +55,19 @@ def check_single_symbol(symbol):
 
 def check_market_data():
     symbols = get_binance_futures_symbols()
-    print(f"Checking {len(symbols)} symbols efficiently...")
+    if not symbols:
+        return
+    print(f"Checking {len(symbols)} symbols...")
     
-    # تحديد عدد الخيوط بـ 20 لضمان السرعة وعدم استنزاف الموارد
     with ThreadPoolExecutor(max_workers=20) as executor:
         executor.map(check_single_symbol, symbols)
 
 def main():
-    print("Optimized Real-time Bot Started...")
-    send_telegram_message("⚡ *تم تحسين أداء البوت وحل مشكلة الاتصالات ليعمل بكفاءة عالية وسرعة فورية*")
+    print("Bot starting main loop...")
+    try:
+        send_telegram_message("⚡ *تم تشخيص وتحديث البوت بنجاح وهو يعمل الآن*")
+    except Exception as e:
+        print(f"Startup telegram error: {e}")
     
     while True:
         try:
@@ -74,4 +78,8 @@ def main():
             time.sleep(10)
 
 if __name__ == "__main__":
-    main()
+    try:
+        print("Script execution started.")
+        main()
+    except Exception as e:
+        print(f"Critical crash error: {e}")
