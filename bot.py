@@ -3,9 +3,9 @@ import time
 import requests
 from datetime import datetime, timezone, timedelta
 
-# بيانات الربط الأساسية
-TOKEN = "8711875284:AAHxIFwTC6JDBUeVX2EnsJgWvQQ0s2bLYw8"
-CHAT_ID = "-1004394911035"
+# بيانات الربط الجديدة للبوت
+TOKEN = "8640721796:AAHrKDS6WPYQ7_B4N-Aj459pOSmZS-_LPu8"
+CHAT_ID = "-1004437537280"
 TELEGRAM_URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
 # جلب قائمة عملات الفيوتشر النشطة من بايننس تلقائياً
@@ -63,7 +63,7 @@ def check_market_data():
                 last_candle = candles[-1]
                 close_price = float(last_candle[4])
                 
-                # يمكنك إضافة أو ربط شروط المؤشر الخاص بك هنا
+                # شروط المؤشر أو الفحص
                 if tf_val == "15m":
                     pass
                 if tf_val == "1h":
@@ -77,11 +77,14 @@ def check_market_data():
 
 # التشغيل المستمر للبوت
 def main():
-    print("Telegram bot started successfully and connected to Binance Futures...")
+    print("Telegram bot started successfully with new token and connected to Binance Futures...")
+    # إرسال رسالة تجريبية للتأكد من نجاح الربط بالبوت الجديد
+    send_telegram_message("🤖 *تم ربط البوت الجديد بنجاح وبدء مراقبة عملات الفيوتشر*")
+    
     while True:
         try:
             check_market_data()
-            time.sleep(10) # الفحص السريع لضمان الفورية بدون تأخير
+            time.sleep(10) # الفحص المستمر بدون تأخير
         except Exception as e:
             print(f"General error: {e}")
             time.sleep(15)
