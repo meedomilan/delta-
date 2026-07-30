@@ -32,7 +32,7 @@ def webhook():
     if not data:
       return jsonify({"status": "error", "message": "No JSON data"}), 400
 
-    # استخراج البيانات المرسلة من تنبيه TradingView
+    # استخراج البيانات المرسلة
     alert_type = str(data.get("type", "")).strip().lower()
     symbol = data.get("symbol", "BTCUSDT.P")
     timeframe = data.get("timeframe", "15m")
@@ -43,9 +43,8 @@ def webhook():
         f"https://www.tradingview.com/chart/?symbol=BINANCE:{symbol.replace('.P', '')}",
     )
 
-    # ضبط الوقت بتوقيت السعودية
+    # الوقت بتوقيت السعودية
     current_time = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
-
     message = ""
 
     # 1. تنبيهات دخول الآن (شراء / بيع)
@@ -147,8 +146,7 @@ def webhook():
     else:
       return jsonify({"status": "ignored", "message": "Unknown alert type"}), 200
 
-    # إرسال الرسالة إلى تيليجرام
-    res = send_telegram_message(message)
+    res = send_telegram_Message(message)
     return jsonify({"status": "success", "telegram_response": res}), 200
 
   except Exception as e:
