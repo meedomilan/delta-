@@ -39,7 +39,7 @@ exchange = ccxt.binance({
     'enableRateLimit': True
 })
 
-# تتبع آخر حالة للإشارات لتجنب التكرار المزعج في نفس الشمعة
+# تتبع آخر حالة للإشارات لتجنب التكرار في نفس الشمعة
 last_signals = {}
 
 def fetch_data(symbol, timeframe, limit=100):
@@ -53,7 +53,6 @@ def fetch_data(symbol, timeframe, limit=100):
 def analyze_market():
     try:
         exchange.load_markets()
-        symbols = [s for s in exchange.symbols if s.endswith('/USDT:USDT') or s.endswith('USDT')]
         # تصفية عملات الفيوتشر فقط
         futures_symbols = [s for s in exchange.symbols if 'USDT' in s and exchange.markets[s].get('linear', True)]
     except Exception as e:
@@ -62,7 +61,7 @@ def analyze_market():
 
     timeframes = {'15m': '15m', '1h': '1h', '4h': '4h'}
     
-    for symbol in futures_symbols[:50]: # فحص العينات لتجنب الحظر، أو يمكنك إزالة الحد
+    for symbol in futures_symbols:
         ticker_name = symbol.replace('/USDT:USDT', 'USDT.P').replace('/', '')
         if not ticker_name.endswith('.P'):
             ticker_name += '.P'
@@ -72,7 +71,6 @@ def analyze_market():
             if df is None or len(df) < 30:
                 continue
             
-            # حساب المؤشرات والزخم
             close = df['close'].iloc[-1]
             open_p = df['open'].iloc[-1]
             high = df['high'].iloc[-1]
@@ -86,13 +84,12 @@ def analyze_market():
             buy_pct = close_pos * 100
             sell_pct = (1.0 - close_pos) * 100
             
-            # مفتاح فريد لكل عملة والفريم للحالة
             sig_key = f"{symbol}_{tf_val}"
 
             # 1. تنبيهات دخول الآن (على فريم 15m)
             if tf_val == '15m':
                 prev_p_check = df['close'].iloc[-2]
-if buy_pct >= 75 and close > prev_p_check:
+                if buy_pct >= 75 and close > prev_p_check:
                     msg = (
                         f"🟢 <b>دخول الآن شراء</b>\n\n"
                         f"💰 العملة: #{ticker_name}\n"
@@ -209,19 +206,18 @@ if buy_pct >= 75 and close > prev_p_check:
                         f"📊 القوة: 91%\n"
                         f"🐋 سيولة ذكية بيعية\n"
                         f"🕒 الوقت: {get_saudi_time()} بتوقيت السعودية\n\n"
-                        f"🔗 <a href='https://www.tradingview.com/chart/?symbol=BINANCE:{ticker_name.pace('','') if False else ticker_name.replace('.P','')}'>TradingView</a>"
+                        f"🔗 <a href='https://www.tradingview.com/chart/?symbol=BINANCE:{ticker_name.replace('.P','')}'>TradingView</a>"
                     )
                     if last_signals.get(sig_key + '_sm_sell') != df['timestamp'].iloc[-1]:
                         send_telegram_message(msg)
                         last_signals[sig_key + '_sm_sell'] = df['timestamp'].iloc[-1]
 
 @app.route('/')
-chno = lambda: "Bot is running successfully!"
-app.add_url_rule('/', 'index', chno)
+def index():
+    return "Bot is running successfully!"
 
 if __name__ == '__main__':
     scheduler = BackgroundScheduler()
-    # تشغيل الفحص كل دقيقة لتغطية العملات والفريمات بدقة
     scheduler.add_job(func=analyze_market, trigger="interval", minutes=1)
     scheduler.start()
     
